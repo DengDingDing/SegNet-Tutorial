@@ -15,19 +15,22 @@ from dataloader import create_unet_dataset
 
 def main():
     # 配置参数
-    image_dir = "CamVid/train"         # 替换为您的图像文件夹路径
-    mask_dir = "CamVid/trainannot"     # 替换为您的掩码文件夹路径
+    train_image_dir = "CamVid/train"         # 替换为您的训练图像文件夹路径
+    train_mask_dir = "CamVid/trainannot"     # 替换为您的训练掩码文件夹路径
+    val_image_dir = "CamVid/val"             # 替换为您的验证图像文件夹路径
+    val_mask_dir = "CamVid/valannot"         # 替换为您的验证掩码文件夹路径
     batch_size = 4
     epochs = 100
     learning_rate = 1e-4
-    checkpoint_dir = "./checkpoints"  # 模型检查点保存目录
-    device_target = "CPU"             # 选择设备目标："GPU", "Ascend", "CPU"
+    checkpoint_dir = "./checkpoints"         # 模型检查点保存目录
+    device_target = "CPU"                    # 选择设备目标："GPU", "Ascend", "CPU"
 
     # 设置上下文
     context.set_context(mode=context.GRAPH_MODE, device_target=device_target)
 
-    # 创建训练数据集
-    train_dataset = create_unet_dataset(image_dir, mask_dir, batch_size=batch_size, shuffle=True)
+    # 创建训练和验证数据集
+    train_dataset = create_unet_dataset(train_image_dir, train_mask_dir, batch_size=batch_size, shuffle=True)
+    val_dataset = create_unet_dataset(val_image_dir, val_mask_dir, batch_size=batch_size, shuffle=False)
 
     # 定义模型
     model = Unet()
@@ -38,8 +41,29 @@ def main():
     # 定义优化器
     optimizer = nn.Adam(params=model.trainable_params(), learning_rate=learning_rate)
 
-    # 定义指标
-    metrics = {"accuracy": nn.Accuracy()}
+    # 定义自定义准确率指标
+    class BinaryAccuracy(nn.Metric):
+        def __init__(self):
+            super(BinaryAccuracy, self).__init__()
+            self.correct = 0
+            self.total = 0
+
+        def clear(self):
+            self.correct = 0
+            self.total = 0
+
+        def update(self, *inputs):
+            preds, labels = inputs
+            preds = nn.Sigmoid()(preds)
+            preds = preds > 0.5
+            labels = labels > 0.5
+            self.correct += (preds == labels).sum().asnumpy()
+            self.total += labels.size
+
+        def eval(self):
+            return self.correct / self.total
+
+    metrics = {"accuracy": BinaryAccuracy()}
 
     # 实例化模型
     model = Model(model, loss_fn, optimizer, metrics=metrics)
@@ -61,7 +85,17 @@ def main():
     ]
 
     # 开始训练
-    model.train(epoch=epochs, train_dataset=train_dataset, callbacks=callbacks, dataset_sink_mode=True)
+    for epoch in range(1, epochs + 1):
+        print(f"Epoch {epoch}/{epochs}")
+        # 训练
+        model.train(epoch=1, train_dataset=train_dataset, callbacks=callbacks, dataset_sink_mode=True)
+        
+        # 验证
+        print("Starting validation...")
+        metrics = model.eval(val_dataset, dataset_sink_mode=True)
+        val_loss = metrics.get("loss")
+        val_accuracy = metrics.get("accuracy")
+        print(f"Validation Loss: {val_loss}, Validation Accuracy: {val_accuracy}")
 
 if __name__ == '__main__':
     main()

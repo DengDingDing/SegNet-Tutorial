@@ -56,29 +56,19 @@ def mask_to_label(mask):
         mask (numpy.ndarray): 掩码Tensor，形状为 (3, H, W)
 
     Returns:
-        numpy.ndarray: 标签Tensor，形状为 (H, W)，dtype为 int32
+        numpy.ndarray: 标签Tensor，形状为 (1, H, W)，dtype为 float32
     """
     # 选择第一个通道
     mask = mask[0, :, :]  # 形状: (H, W)
-    # 转换为 int32 类型
-    mask = mask.astype(np.int32)
+    # 转换为 float32 类型
+    mask = mask.astype(np.float32)
     # 如果标签从1开始，转换为从0开始
     mask = mask - 1
+    # 扩展维度为 (1, H, W)
+    mask = np.expand_dims(mask, axis=0)
     return mask
 
 def create_unet_dataset(image_dir, mask_dir, batch_size=4, shuffle=True):
-    """
-    创建用于U-Net的MindSpore数据集
-
-    Args:
-        image_dir (str): 图像文件夹路径
-        mask_dir (str): 掩码文件夹路径
-        batch_size (int): 批次大小
-        shuffle (bool): 是否打乱数据
-
-    Returns:
-        mindspore.dataset.GeneratorDataset: 处理后的数据集
-    """
     image_mask_pairs = get_image_mask_pairs(image_dir, mask_dir)
 
     # 创建GeneratorDataset
@@ -123,6 +113,13 @@ def create_unet_dataset(image_dir, mask_dir, batch_size=4, shuffle=True):
         output_columns="mask",
         num_parallel_workers=2
     )
+
+    # 验证标签的数据类型和形状
+    for data in dataset.create_dict_iterator():
+        masks = data["mask"]
+        print("Mask dtype:", masks.dtype)  # 应为 float32
+        print("Mask shape:", masks.shape)  # 应为 (batch_size, 1, H, W)
+        break
 
     # 批处理
     dataset = dataset.batch(batch_size, drop_remainder=True)
