@@ -196,11 +196,11 @@ class Unet(nn.Cell):
 
 if __name__ == '__main__':
     # 创建输入数据
-    input_data = Tensor(np.random.randn(1, 3, 360, 480).astype(np.float32))
+    input_data = Tensor(np.random.randn(1,3, 360, 480).astype(np.float32))
+    print(f'input_data shape: {input_data.shape}')
     # 实例化模型
     unet = Unet()
     # 前向传播
     output = unet(input_data)
     # 打印输出形状
-    print(output.shape)
-    print(output)
+    print(f'output shape: {output.shape}')
