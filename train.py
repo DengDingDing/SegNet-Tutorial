@@ -8,6 +8,7 @@ from mindspore.train import Model
 from mindspore.train.callback import ModelCheckpoint, CheckpointConfig, LossMonitor, TimeMonitor
 from mindspore import dtype as mstype
 import numpy as np
+import mindspore.ops as ops
 
 # 导入您的模型和数据加载器
 from model import Unet
@@ -36,7 +37,7 @@ def main():
     model = Unet()
 
     # 定义损失函数
-    loss_fn = nn.BCEWithLogitsLoss()
+    loss_fn = nn.MSELoss()
 
     # 定义优化器
     optimizer = nn.Adam(params=model.trainable_params(), learning_rate=learning_rate)
@@ -54,9 +55,7 @@ def main():
 
         def update(self, *inputs):
             preds, labels = inputs
-            preds = nn.Sigmoid()(preds)
-            preds = preds > 0.5
-            labels = labels > 0.5
+            preds = ops.Round()(preds)
             self.correct += (preds == labels).sum().asnumpy()
             self.total += labels.size
 
