@@ -20,8 +20,8 @@ def main():
     train_mask_dir = "CamVid/trainannot"     # 替换为您的训练掩码文件夹路径
     val_image_dir = "CamVid/val"             # 替换为您的验证图像文件夹路径
     val_mask_dir = "CamVid/valannot"         # 替换为您的验证掩码文件夹路径
-    batch_size = 4
-    epochs = 100
+    batch_size = 16
+    epochs = 50
     learning_rate = 1e-4
     checkpoint_dir = "./checkpoints"         # 模型检查点保存目录
     device_target = "CPU"                    # 选择设备目标："GPU", "Ascend", "CPU"

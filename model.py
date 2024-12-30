@@ -204,3 +204,6 @@ if __name__ == '__main__':
     output = unet(input_data)
     # 打印输出形状
     print(f'output shape: {output.shape}')
+    
+    
+    
